@@ -1,3 +1,70 @@
+class EC2Instance:
+    def __init__(self, 
+                 instance_id, 
+                 launch_time = None, 
+                 instance_type = None, 
+                 platform = None, 
+                 image_id = None, 
+                 public_ip_address = None, 
+                 public_dns_name = None, 
+                 private_ip_address = None, 
+                 private_dns_name = None,
+                 state = None, 
+                 subnet_id = None, 
+                 vpc_id = None,
+                 architecture = None,
+                 instance_life_cycle = None
+                ):
+        self.instance_id = instance_id
+        self.launch_time = launch_time
+        self.instance_type = instance_type
+        self.platform = platform
+        self.image_id = image_id
+        self.public_ip_address = public_ip_address
+        self.public_dns_name = public_dns_name
+        self.state = state
+        self.subnet_id = subnet_id
+        self.vpc_id = vpc_id
+        self.private_ip_address = private_ip_address
+        self.private_dns_name = private_dns_name
+        self.architecture = architecture
+        self.instance_life_cycle = instance_life_cycle
+        
+    def __str__(self):
+        return """Details EC2 instance Id : {}
+                launch_time = {},
+                instance_type = {},
+                platform = {},
+                image_id = {},
+                public_ip_address = {},
+                public_dns_name = {},
+                private_ip_address = {},
+                private_dns_name = {},
+                state = {},
+                subnet_id = {},
+                vpc_id = {},
+                architecture = {},
+                instance_life_cycle = {}
+              """.format(
+                  self.instance_id,
+                  self.launch_time,
+                  self.instance_type,
+                  self.platform,
+                  self.image_id,
+                  self.public_ip_address,
+                  self.public_dns_name,
+                  self.private_ip_address,
+                  self.private_dns_name,
+                  self.state,
+                  self.subnet_id,
+                  self.vpc_id,
+                  self.architecture,
+                  self.instance_life_cycle
+                  )
+        
+        
+
+
 
 class EC2:
     def set_client(self, client):
@@ -122,35 +189,63 @@ class EC2:
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
         
-    def __get_all_ec2_instance_ids_with_resource(self):
+    def __get_all_ec2_instances_with_resource(self):
         """Returns all the instances using the AWS resource object
 
         Yields:
             Instance Ids
         """
         for instance in self.__resource.instances.all():
-            yield instance.instance_id
+            yield EC2Instance(instance.instance_id,
+                            instance.launch_time,
+                            instance.instance_type,
+                            instance.platform,
+                            instance.image_id,
+                            instance.public_ip_address,
+                            instance.public_dns_name,
+                            instance.private_ip_address,
+                            instance.private_dns_name,
+                            instance.state.get("Name"), 
+                            instance.subnet_id,
+                            instance.vpc_id,
+                            instance.architecture,
+                            instance.instance_lifecycle
+            );
     
-    def __get_all_ec2_instance_ids_with_client(self):
+    def __get_all_ec2_instances_with_client(self):
         """Returns all the instances using the AWS client object
 
         Yields:
-            Instance Ids
+            iterator of EC2Instance objects
         """
         for reservation in self.__client.describe_instances().get("Reservations"):
             for instance in  reservation.get("Instances"):
-                yield instance.get("InstanceId");
-    
-    def get_all_ec2_instance_ids(self):
+                yield EC2Instance(instance.get("InstanceId"),
+                                instance.get("LaunchTime"), 
+                                instance.get("InstanceType"),
+                                instance.get("Platform"), 
+                                instance.get("ImageId"),
+                                instance.get("PublicIpAddress"), 
+                                instance.get("PublicDnsName"), 
+                                instance.get("PrivateIpAddress"), 
+                                instance.get("PrivateDnsName"), 
+                                instance.get("State").get("Name"), 
+                                instance.get("SubnetId"), 
+                                instance.get("VpcId"), 
+                                instance.get("Architecture"), 
+                                instance.get("InstanceLifecycle")
+                    );
+
+    def get_all_ec2_instances(self):
         """Returns all the instances Ids
 
         Yields:
             Instance Ids
         """
         if self.__resource:
-            return self.__get_all_ec2_instance_ids_with_resource();
+            return self.__get_all_ec2_instances_with_resource();
         elif self.__client:
-            return self.__get_all_ec2_instance_ids_with_client();
+            return self.__get_all_ec2_instances_with_client();
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
             

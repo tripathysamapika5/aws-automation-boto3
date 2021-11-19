@@ -60,21 +60,35 @@ def terminate_instances():
     print("Terminated instances : {}...".format(','.join(instance_ids)))
 
 
-def print_all_ec2_instance_ids():
-    ec2_rescource = EC2Resource().get_instance()    
-    ec2_1 = EC2().set_resource(ec2_rescource)
-    
-    print("printing using resource...")
-    for instance in ec2_1.get_all_ec2_instance_ids():
-        print(instance)
-        
+def print_all_ec2_instances():
     ec2_client = EC2Client().get_client()
     ec2_2 = EC2().set_client(ec2_client)
            
     print("printing using client...")        
-    for instance in ec2_2.get_all_ec2_instance_ids():
+    for instance in ec2_2.get_all_ec2_instances():
         print(instance)
 
+    ec2_rescource = EC2Resource().get_instance()    
+    ec2_1 = EC2().set_resource(ec2_rescource)
+    
+    print("printing using resource...")
+    for instance in ec2_1.get_all_ec2_instances():
+        print(instance)
+        
+
+    ec2_rescource = EC2Resource(region_name="us-west-1").get_instance()    
+    ec2_1 = EC2().set_resource(ec2_rescource)
+    
+    print("printing using resource...")
+    for instance in ec2_1.get_all_ec2_instances():
+        print(instance)
+
+    ec2_client = EC2Client(region_name="us-west-1").get_client()
+    ec2_2 = EC2().set_client(ec2_client)
+           
+    print("printing using client...")        
+    for instance in ec2_2.get_all_ec2_instances():
+        print(instance)
 
 if __name__ == '__main__':
     print("Testing ec2 deployments")
@@ -85,5 +99,5 @@ if __name__ == '__main__':
     # terminate_instances() # it will fail as api_termination is disabled
     # enable_ec2_instance_api_termination()
     # terminate_instances()
-    print_all_ec2_instance_ids()
+    print_all_ec2_instances()
     
