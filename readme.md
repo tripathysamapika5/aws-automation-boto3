@@ -20,13 +20,15 @@ python3 -m venv aws
 source aws/bin/activate
 pip3 install boto3
 pip3 install awscli
+pip3 install pyboto3
 ```
 
-# Create two Iam users for aws account with programatic access
-# One for full s3 access and one for full ec2 access
-# Then complete the aws cli configuration
+# aws cli configuration
+Create two Iam users for aws account with programatic access
+One for full s3 access and one for full ec2 access
 
 ```
+
 aws configure --profile ec2_developer
 aws configure --profile s3_developer
 
@@ -41,13 +43,11 @@ Default output format [None]: json
 
 ```
 
-# Similarly also create a user with admin access with name samapika
-# Then complete the aws cli configuration
+also create a user with admin access with name samapika
 
 ```
 aws configure --profile samapika
 ```
-
 
 # Check your AWS configration profiles by following commands
 
