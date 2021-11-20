@@ -25,7 +25,7 @@ def print_all_volumes():
         print(volume)
         
 if __name__ == '__main__':
-    print("Testing colume deployments")
+    print("Testing volume deployments")
     # describe_instance()
     # disable_ec2_instance_api_termination()
     # stop_instances()

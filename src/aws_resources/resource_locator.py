@@ -2,7 +2,7 @@ import boto3
 
 class ResourceLocator:
     def __init__(self, service_name, profile_name, region_name): 
-        self._resource = boto3.session.Session(profile_name=profile_name).resource(service_name, region_name = region_name)
+        self._resource = boto3.session.Session(profile_name=profile_name, region_name = region_name).resource(service_name)
     def get_instance(self): 
         return self._resource
     

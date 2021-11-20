@@ -2,7 +2,7 @@ import boto3
 
 class ClientLocator:
     def __init__(self, service_name, profile_name, region_name ): 
-        self._client = boto3.session.Session(profile_name = profile_name).client(service_name, region_name = region_name)
+        self._client = boto3.session.Session(profile_name = profile_name, region_name = region_name).client(service_name)
     def get_client(self): 
         return self._client
     
