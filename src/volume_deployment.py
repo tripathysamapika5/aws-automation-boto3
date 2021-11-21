@@ -10,15 +10,15 @@ from src.aws_resources.resource_locator import EC2Resource
 from src.ec2.volume import VolumeService
 
 def print_all_volumes():
-    ec2_client = EC2Client().get_client()
-    volume_2 = VolumeService().set_client(ec2_client)
+    ec2_client_service = EC2Client()
+    volume_2 = VolumeService().set_client(ec2_client_service)
            
     print("printing using client...")        
     for volume in volume_2.get_all_volumes():
         print(volume)
 
-    ec2_rescource = EC2Resource().get_instance()    
-    volume_1 = VolumeService().set_resource(ec2_rescource)
+    ec2_rescource_service = EC2Resource()
+    volume_1 = VolumeService().set_resource(ec2_rescource_service)
     
     print("printing using resource...")
     for volume in volume_1.get_all_volumes():

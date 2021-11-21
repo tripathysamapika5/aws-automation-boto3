@@ -1,13 +1,18 @@
 
 class VPC: 
-    def __init__(self, client) : 
-        self._client = client
+    def __init__(self, client_service) : 
+        self._client = client_service.get_client()
+        self.__client_waiter = client_service.get_waiter()
         
     def create_vpc(self, cidr_block):
         print("creating VPC...")
-        return self._client.create_vpc(
+        response = self._client.create_vpc(
             CidrBlock = cidr_block
         )
+        
+        vpc_id = response.get("Vpc").get("VpcId")
+        self.__client_waiter.wait_till_vpc_available([vpc_id])
+        return response
         
     def add_name_tag(self,resource_id, resource_name):
         print("Adding name {} to resource with id {}".format(resource_name, resource_id))
@@ -29,10 +34,13 @@ class VPC:
     
     def create_subnet(self, vpc_id, cidr_block):
         print("Creating a subnet for vpc : {} and cidrBlock : {}...".format(vpc_id, cidr_block))
-        return self._client.create_subnet(
+        response = self._client.create_subnet(
             VpcId = vpc_id, 
             CidrBlock = cidr_block
         )
+        subnet_id = response.get("Subnet").get("SubnetId")
+        self.__client_waiter.wait_till_subnet_available([subnet_id])
+        return response
 
     def create_public_route_table(self, vpc_id):
         print("Creating Route table for public subnet...")

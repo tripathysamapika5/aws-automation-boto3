@@ -1,8 +1,8 @@
 
 class STS:
     
-    def __init__(self, client):
-        self.__client = client
+    def __init__(self, client_service):
+        self.__client = client_service.get_client()
     
     def get_user_id(self):
         """Returns the user id of the caller(IAM user/root account)

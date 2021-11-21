@@ -32,17 +32,38 @@ class Volume:
         
 class VolumeService:
     
-    def set_client(self, client):
-        self.__client = client
+    def set_client(self, client_service):
+        """It will set the AWS client for VolumeService
+
+        Args:
+            client (AWS client)
+
+        Returns:
+            IAM: returns the object of type 
+        """
+        self.__client = client_service.get_client()
         self.__resource = None
         return self
         
-    def set_resource(self, resource):
+    def set_resource(self, resource_service):
+        """It will set the AWS resource for VolumeService
+
+        Args:
+            client (AWS client)
+
+        Returns:
+            IAM: returns the object of type 
+        """
         self.__client = None
-        self.__resource = resource
+        self.__resource = resource_service.get_resource()
         return self
         
     def __get_all_volumes_with_resource(self):
+        """It will return all the volumes present in the aws account using resource
+
+        Yields:
+            Volume objects
+        """
         for volume in self.__resource.volumes.all():
             yield Volume(volume.volume_id,
                          volume.volume_type,
@@ -55,6 +76,11 @@ class VolumeService:
                          volume.availability_zone)
             
     def __get_all_volumes_with_client(self):
+        """It will return all the volumes present in the aws account using client
+
+        Yields:
+            Volume objects
+        """
         for volume in self.__client.describe_volumes().get("Volumes"):
             yield Volume(volume.get("VolumeId"),
                          volume.get("VolumeType"),
@@ -67,6 +93,14 @@ class VolumeService:
                          volume.get("AvailabilityZone"))
             
     def get_all_volumes(self):
+        """It will return all the volumes present in the aws account
+
+        Raises:
+            AttributeError: When AWS resource or client object is not set for VolumeService object
+
+        Returns:
+            iterator of type volume 
+        """
         if self.__client:
             return self.__get_all_volumes_with_client()
         elif self.__resource:

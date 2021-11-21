@@ -13,8 +13,8 @@ from src.utils.utilities import Utilities
 def main():
         
     # creating a vpc client
-    ec2_client = EC2Client().get_client()
-    vpc = VPC(ec2_client)
+    ec2_client_service = EC2Client()
+    vpc = VPC(ec2_client_service)
     
     # Creating utility object
     utility = Utilities()
@@ -85,7 +85,7 @@ def main():
     
     
     #EC2 instances
-    ec2 = EC2(ec2_client)
+    ec2 = EC2().set_client(ec2_client_service)
     
     # creating a keypair
     keypair_response = ec2.create_key_pair(properties['keypair.name'])

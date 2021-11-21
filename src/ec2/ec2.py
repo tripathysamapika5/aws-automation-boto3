@@ -1,3 +1,5 @@
+from src.ec2.region import ServiceRegion
+
 class EC2Instance:
     def __init__(self, 
                  instance_id, 
@@ -67,8 +69,23 @@ class EC2Instance:
 
 
 class EC2:
-    def set_client(self, client):
-        """It will set the AWS client for IAM
+    """this class provides methods to perform actions on EC2 instances
+    
+    sample code snippet to create EC2 classes:
+    
+    from src.aws_resources.client_locator import EC2Client
+    from src.aws_resources.resource_locator import EC2Resource
+
+    ec2_client = EC2Client().get_client()
+    ec2 = EC2().set_client(ec2_client)
+    
+    ec2_rescource = EC2Resource().get_instance()    
+    ec2_1 = EC2().set_resource(ec2_rescource)
+    
+    
+    """
+    def set_client(self, client_service):
+        """It will set the AWS client for EC2
 
         Args:
             client (AWS client)
@@ -76,12 +93,13 @@ class EC2:
         Returns:
             IAM: returns the object of type 
         """
-        self.__client = client;
+        self.__client = client_service.get_client();
+        self.__client_waiter = client_service.get_waiter();
         self.__resource = None;
         return self;
     
-    def set_resource(self, resource):
-        """It will set the AWS resource for IAM
+    def set_resource(self, resource_service):
+        """It will set the AWS resource for EC2
 
         Args:
             client (AWS resource)
@@ -91,26 +109,32 @@ class EC2:
         """
 
         self.__client = None;
-        self.__resource = resource;
+        self.__client_waiter = None;
+        self.__resource = resource_service.get_resource();
         return self;
     
     def create_key_pair(self, key_name):
         print("Creating a keypair with name : {}".format(key_name))
         if self.__client:
-            return self.__client.create_key_pair(
+            response = self.__client.create_key_pair(
                 KeyName = key_name
             )
+            self.__client_waiter.wait_till_key_pair_exists([key_name])
+            return response
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
     
     def create_security_group(self, group_name, description, vpc_id):
         print("Creating security group with name {} for vpc {}...".format(group_name, vpc_id))
         if self.__client:
-            return self.__client.create_security_group(
+            response = self.__client.create_security_group(
                 GroupName = group_name, 
                 Description = description, 
                 VpcId = vpc_id
             )
+            group_id = response.get("GroupId")
+            self.__client_waiter.wait_till_security_group_exists([group_id])
+            return response
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
     
@@ -138,7 +162,7 @@ class EC2:
     def launch_ec2_instance(self, image_id, instance_type, key_name, min_count, max_count, security_group_id, subnet_id, user_data):
         print("Launching ec2 instance(s) within subnet : {}...".format(subnet_id))
         if self.__client:
-            return self._client.run_instances(
+            response = self.__client.run_instances(
                 ImageId = image_id,
                 InstanceType = instance_type,
                 KeyName = key_name,
@@ -148,6 +172,10 @@ class EC2:
                 SubnetId = subnet_id,
                 UserData = user_data     
             )
+            
+            instance_ids = [instance.get("InstanceId") for instance in response.get('Instances')]
+            self.__client_waiter.wait_till_instance_exists(instance_ids);
+            return response
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
     
@@ -167,35 +195,135 @@ class EC2:
             )
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
+        
+    def __start_ec2_instances_with_client(self, *instance_ids):
+        stopped_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids)) if instance.state == "stopped"]
+        response = self.__client.start_instances(InstanceIds = stopped_instance_ids_list)
+        self.__client_waiter.wait_till_instance_status_running(stopped_instance_ids_list)
+        return response
     
+    
+    def __start_ec2_instances_with_resource(self, *instance_ids):
+        
+        stopped_instances = list(self.__resource.instances.filter(
+            Filters = [{'Name': 'instance-state-name', 'Values' : ["stopped"]}],
+            InstanceIds = list(instance_ids)))
+        
+        response = self.__resource.instances.filter(
+            Filters = [{'Name': 'instance-state-name', 'Values' : ["stopped"]}],
+            InstanceIds = list(instance_ids)).start()
+        
+        for instance in stopped_instances:
+            instance.wait_until_running()
+            
+        return response
+    
+    
+    def __stop_ec2_instances_with_client(self, *instance_ids):
+        running_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids)) if instance.state == "running"]
+        response = self.__client.stop_instances(InstanceIds = running_instance_ids_list)
+        self.__client_waiter.wait_till_instance_status_stopped(running_instance_ids_list)
+        return response
+    
+    def __stop_ec2_instances_with_resource(self, *instance_ids):
+        
+        running_instances = list(self.__resource.instances.filter(
+            Filters = [{'Name': 'instance-state-name', 'Values' : ["running"]}],
+            InstanceIds = list(instance_ids)))
+        
+        response = self.__resource.instances.filter(
+            Filters = [{'Name': 'instance-state-name', 'Values' : ["running"]}],
+            InstanceIds = list(instance_ids)).stop()
+        
+        for instance in running_instances:
+            instance.wait_until_stopped()
+            
+        return response
+ 
+    
+    def __terminate_ec2_instances_with_client(self, *instance_ids):
+        instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids)) if instance.state in ("running","stopped")]
+        response = self.__client.terminate_instances(InstanceIds = instance_ids_list)
+        self.__client_waiter.wait_till_instance_status_terminated(instance_ids_list)
+        return response
+
+    def __terminate_ec2_instances_with_resource(self, *instance_ids):
+        instances = list(self.__resource.instances.filter(
+            Filters = [{'Name': 'instance-state-name', 'Values' : ["running","stopped"]}],
+            InstanceIds = list(instance_ids)))
+        
+        response = self.__resource.instances.filter(
+            Filters = [{'Name': 'instance-state-name', 'Values' : ["running","stopped"]}],
+            InstanceIds = list(instance_ids)).terminate()
+        
+        for instance in instances:
+            instance.wait_until_terminated()
+            
+        return response
+                    
     def stop_ec2_instances(self, *instance_ids):
+        """Stops a single or multiple instances using both client and resource AWS object
+
+        Raises:
+            AttributeError: when AWS resource or client object is not set for EC2 object...
+
+        Returns:
+            json response of the ec2 instances
+        """
         print("Stopping instances : {}...".format(','.join(instance_ids)))
         if self.__client:
-            return self.__client.stop_instances(InstanceIds = list(instance_ids))
+            return self.__stop_ec2_instances_with_client(*instance_ids)
+        elif self.__resource:
+            return self.__stop_ec2_instances_with_resource(*instance_ids)
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
     
     def start_ec2_instances(self, *instance_ids):
+        """Starts a single or multiple instances using both client and resource AWS object
+
+        Raises:
+            AttributeError: when AWS resource or client object is not set for EC2 object..
+
+        Returns:
+            json response of the ec2 instances
+        """
         print("Starting instances : {}...".format(','.join(instance_ids)))
         if self.__client:
-            return self.__client.start_instances(InstanceIds = list(instance_ids))
+            return self.__start_ec2_instances_with_client(*instance_ids)
+        elif self.__resource:
+            return self.__start_ec2_instances_with_resource(*instance_ids)
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
     
     def terminate_ec2_instances(self, *instance_ids):
+        """Terminates a single or multiple instances using both client and resource AWS object
+
+        Raises:
+            AttributeError: when AWS resource or client object is not set for EC2 object..
+
+        Returns:
+            json response of the ec2 instances
+        """
         print("Terminating instances : {}...".format(','.join(instance_ids)))
         if self.__client:
-            return self.__client.terminate_instances(InstanceIds = list(instance_ids))
+            return self.__terminate_ec2_instances_with_client(*instance_ids)
+        elif self.__resource:
+            return self.__terminate_ec2_instances_with_resource(*instance_ids)
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
         
-    def __get_all_ec2_instances_with_resource(self):
+    def __get_all_ec2_instances_with_resource(self, instance_ids):
         """Returns all the instances using the AWS resource object
 
         Yields:
             Instance Ids
         """
-        for instance in self.__resource.instances.all():
+        if instance_ids:
+            instances = self.__resource.instances.filter(InstanceIds = list(instance_ids))
+        else:
+            instances = self.__resource.instances.all()
+            
+        for instance in instances:
             yield EC2Instance(instance.instance_id,
                             instance.launch_time,
                             instance.instance_type,
@@ -212,13 +340,18 @@ class EC2:
                             instance.instance_lifecycle
             );
     
-    def __get_all_ec2_instances_with_client(self):
+    def __get_all_ec2_instances_with_client(self, instance_ids ):
         """Returns all the instances using the AWS client object
 
         Yields:
             iterator of EC2Instance objects
         """
-        for reservation in self.__client.describe_instances().get("Reservations"):
+        if instance_ids:
+            instances_response = self.__client.describe_instances(InstanceIds=list(instance_ids))
+        else:
+            instances_response = self.__client.describe_instances()
+            
+        for reservation in instances_response.get("Reservations"):
             for instance in  reservation.get("Instances"):
                 yield EC2Instance(instance.get("InstanceId"),
                                 instance.get("LaunchTime"), 
@@ -236,17 +369,36 @@ class EC2:
                                 instance.get("InstanceLifecycle")
                     );
 
-    def get_all_ec2_instances(self):
+    def get_all_ec2_instances(self, instance_ids = None):
         """Returns all the instances Ids
 
         Yields:
             Instance Ids
         """
         if self.__resource:
-            return self.__get_all_ec2_instances_with_resource();
+            return self.__get_all_ec2_instances_with_resource(instance_ids);
         elif self.__client:
-            return self.__get_all_ec2_instances_with_client();
+            return self.__get_all_ec2_instances_with_client(instance_ids);
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
+        
+    def get_region_available_for_ec2_service(self):
+        """It will return all the available regions where ec2 service is avialable
+
+        Raises:
+            AttributeError: [description]
+
+        Yields:
+            [type]: [description]
+        """
+        if self.__resource:
+            client = self.__resource.meta.client
+        elif self.__client:
+            client = self.__client
+        else:
+            raise AttributeError("AWS resource or client object is not set for EC2 object..")
+        
+        for region_response in client.describe_regions().get('Regions'):
+            yield ServiceRegion(region_response.get("RegionName"), region_response.get("Endpoint"))
             
         

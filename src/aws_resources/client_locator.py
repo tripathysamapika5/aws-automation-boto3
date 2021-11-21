@@ -1,10 +1,23 @@
+import sys
+import os
 import boto3
+
+
+PROJECT_DIR = os.getcwd()
+sys.path.append(PROJECT_DIR)
+
+from  src.aws_resources.waiter import ClientWaiterService
+
 
 class ClientLocator:
     def __init__(self, service_name, profile_name, region_name ): 
-        self._client = boto3.session.Session(profile_name = profile_name, region_name = region_name).client(service_name)
+        self.__client = boto3.session.Session(profile_name = profile_name, region_name = region_name).client(service_name)
+        self.__waiter_service = ClientWaiterService(self.__client)
     def get_client(self): 
-        return self._client
+        return self.__client
+    def get_waiter(self):
+        return self.__waiter_service 
+
     
 class EC2Client(ClientLocator):
     """It will return EC2 client

@@ -9,11 +9,11 @@ from src.aws_resources.client_locator import STSClient
 from src.sts.sts import STS
 
 def main():
-    sts_client_s3_dev = STSClient(profile_name= "s3_developer").get_client()
-    sts_client_ec2_dev = STSClient(profile_name= "ec2_developer").get_client()
-    sts_client_samapika = STSClient().get_client()
+    sts_client_svc_s3_dev = STSClient(profile_name= "s3_developer")
+    sts_client_svc_ec2_dev = STSClient(profile_name= "ec2_developer")
+    sts_client_svc_samapika = STSClient()
     
-    sts_s3_dev = STS(sts_client_s3_dev)
+    sts_s3_dev = STS(sts_client_svc_s3_dev)
     print("user : s3_developer, user id : {}, account id : {}, arn : {}"
           .format(
               sts_s3_dev.get_user_id(),
@@ -22,7 +22,7 @@ def main():
               )
           )
     
-    sts_ec2_dev = STS(sts_client_ec2_dev)
+    sts_ec2_dev = STS(sts_client_svc_ec2_dev)
     print("user : ec2_developer, user id : {}, account id : {}, arn : {}"
           .format(
               sts_ec2_dev.get_user_id(),
@@ -31,7 +31,7 @@ def main():
               )
           )
 
-    sts_samapika = STS(sts_client_samapika)
+    sts_samapika = STS(sts_client_svc_samapika)
     print("user : samapika, user id : {}, account id : {}, arn : {}"
           .format(
               sts_samapika.get_user_id(),

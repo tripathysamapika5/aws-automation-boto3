@@ -2,7 +2,7 @@
 
 class S3:    
                
-    def set_client(self, client):
+    def set_client(self, client_service):
         
         """It will set the AWS client for S3
 
@@ -12,11 +12,11 @@ class S3:
         Returns:
             IAM: returns the object of type 
         """
-        self.__client = client;
+        self.__client = client_service.get_client();
         self.__resource = None;
         return self;
     
-    def set_resource(self, resource):
+    def set_resource(self, resource_service):
         
         """It will set the AWS resource for S3
 
@@ -28,7 +28,7 @@ class S3:
         """
 
         self.__client = None;
-        self.__resource = resource;
+        self.__resource = resource_service.get_resource();
         return self;
     
     def __get_all_buckets_with_resource(self):
