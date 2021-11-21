@@ -55,3 +55,12 @@ aws configure --profile samapika
 cat  ~/.aws/config
 cat  ~/.aws/credentials
 ```
+
+
+# Converting AWS resource to client object using meta
+
+```
+session = boto3.session.Session(profile_name = "samapika", region_name = "us-east-1")
+resource = session.client("ec2")
+client = resource.meta.client
+```ß
