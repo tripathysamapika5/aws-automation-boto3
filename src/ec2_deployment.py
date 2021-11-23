@@ -40,7 +40,7 @@ def stop_instances_with_client():
     ec2 = EC2().set_client(ec2_client_service)
 
     instance_ids = [instance.instance_id for instance in ec2.get_all_ec2_instances()]    
-    stopped_ec2_insatnce_response = ec2.stop_ec2_instances(*instance_ids)
+    stopped_ec2_insatnce_response = ec2.stop_ec2_instances(instance_ids)
     print("Stopped instances response : {}...".format(stopped_ec2_insatnce_response))
 
 def stop_instances_with_resource():
@@ -49,7 +49,7 @@ def stop_instances_with_resource():
     ec2 = EC2().set_resource(ec2_rescource_service)
 
     instance_ids = [instance.instance_id for instance in ec2.get_all_ec2_instances()]    
-    stopped_ec2_insatnce_response = ec2.stop_ec2_instances(*instance_ids)
+    stopped_ec2_insatnce_response = ec2.stop_ec2_instances(instance_ids)
     print("Stopped instances response : {}...".format(stopped_ec2_insatnce_response))
 
 
@@ -58,7 +58,7 @@ def start_instances_with_client():
     ec2 = EC2().set_client(ec2_client_service)
 
     instance_ids = [instance.instance_id for instance in ec2.get_all_ec2_instances()]   
-    starteted_ec2_insatnce_response = ec2.start_ec2_instances(*instance_ids)
+    starteted_ec2_insatnce_response = ec2.start_ec2_instances(instance_ids)
     print("Started instances response : {}...".format(starteted_ec2_insatnce_response))
 
 def start_instances_with_resource():
@@ -66,7 +66,7 @@ def start_instances_with_resource():
     ec2 = EC2().set_resource(ec2_rescource_service)
 
     instance_ids = [instance.instance_id for instance in ec2.get_all_ec2_instances()]   
-    starteted_ec2_insatnce_response = ec2.start_ec2_instances(*instance_ids)
+    starteted_ec2_insatnce_response = ec2.start_ec2_instances(instance_ids)
     print("Started instances response : {}...".format(starteted_ec2_insatnce_response))
 
 
@@ -76,7 +76,7 @@ def terminate_instances_with_client():
     ec2 = EC2().set_client(ec2_client_service)
 
     instance_ids = [instance.instance_id for instance in ec2.get_all_ec2_instances()]   
-    terminated_ec2_insatnce_response = ec2.terminate_ec2_instances(*instance_ids)
+    terminated_ec2_insatnce_response = ec2.terminate_ec2_instances(instance_ids)
     print("Terminated instances response : {}...".format(terminated_ec2_insatnce_response))
 
 def terminate_instances_with_resoure():
@@ -84,7 +84,7 @@ def terminate_instances_with_resoure():
     ec2 = EC2().set_resource(ec2_rescource_service)
 
     instance_ids = [instance.instance_id for instance in ec2.get_all_ec2_instances()]   
-    terminated_ec2_insatnce_response = ec2.terminate_ec2_instances(*instance_ids)
+    terminated_ec2_insatnce_response = ec2.terminate_ec2_instances(instance_ids)
     print("Terminated instances response : {}...".format(terminated_ec2_insatnce_response))
 
 
@@ -94,7 +94,7 @@ def print_all_ec2_instances():
     ec2_2 = EC2().set_client(ec2_client_service)
            
     print("printing using client...")        
-    for instance in ec2_2.get_all_ec2_instances(['i-0998bc26386336b41']):
+    for instance in ec2_2.get_all_ec2_instances():
         print(instance)
         
 
@@ -102,7 +102,7 @@ def print_all_ec2_instances():
     ec2_1 = EC2().set_resource(ec2_rescource_service)
     
     print("printing using resource...")
-    for instance in ec2_1.get_all_ec2_instances(['i-0998bc26386336b41']):
+    for instance in ec2_1.get_all_ec2_instances():
         print(instance)
         
 
@@ -150,8 +150,8 @@ if __name__ == '__main__':
     # start_instances_with_resource()
     # terminate_instances() # it will fail as api_termination is disabled
     # enable_ec2_instance_api_termination()
-    terminate_instances_with_client()
+    # terminate_instances_with_client()
     # terminate_instances_with_resoure()
-    # print_all_ec2_instances()
+    print_all_ec2_instances()
     # print_region_available_for_ec2_service()
     

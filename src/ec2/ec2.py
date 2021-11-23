@@ -15,7 +15,8 @@ class EC2Instance:
                  subnet_id = None, 
                  vpc_id = None,
                  architecture = None,
-                 instance_life_cycle = None
+                 instance_life_cycle = None,
+                 volume_ids = None
                 ):
         self.instance_id = instance_id
         self.launch_time = launch_time
@@ -31,6 +32,7 @@ class EC2Instance:
         self.private_dns_name = private_dns_name
         self.architecture = architecture
         self.instance_life_cycle = instance_life_cycle
+        self.volume_ids = volume_ids
         
     def __str__(self):
         return """Details EC2 instance Id : {}
@@ -46,7 +48,8 @@ class EC2Instance:
                 subnet_id = {},
                 vpc_id = {},
                 architecture = {},
-                instance_life_cycle = {}
+                instance_life_cycle = {},
+                volume_ids  = {}
               """.format(
                   self.instance_id,
                   self.launch_time,
@@ -61,7 +64,8 @@ class EC2Instance:
                   self.subnet_id,
                   self.vpc_id,
                   self.architecture,
-                  self.instance_life_cycle
+                  self.instance_life_cycle,
+                  self.volume_ids
                   )
         
         
@@ -196,22 +200,22 @@ class EC2:
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
         
-    def __start_ec2_instances_with_client(self, *instance_ids):
-        stopped_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids)) if instance.state == "stopped"]
+    def __start_ec2_instances_with_client(self, instance_ids):
+        filters = [{'Name': 'instance-state-name', 'Values' : ["stopped"]}]
+        stopped_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids), filters)]
         response = self.__client.start_instances(InstanceIds = stopped_instance_ids_list)
         self.__client_waiter.wait_till_instance_status_running(stopped_instance_ids_list)
         return response
     
     
-    def __start_ec2_instances_with_resource(self, *instance_ids):
+    def __start_ec2_instances_with_resource(self, instance_ids):
         
-        stopped_instances = list(self.__resource.instances.filter(
-            Filters = [{'Name': 'instance-state-name', 'Values' : ["stopped"]}],
-            InstanceIds = list(instance_ids)))
+        filters = [{'Name': 'instance-state-name', 'Values' : ["stopped"]}]
+        stopped_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids), filters)]
         
-        response = self.__resource.instances.filter(
-            Filters = [{'Name': 'instance-state-name', 'Values' : ["stopped"]}],
-            InstanceIds = list(instance_ids)).start()
+        stopped_instances = list(self.__resource.instances.filter(InstanceIds = stopped_instance_ids_list))
+        
+        response = self.__resource.instances.filter(InstanceIds = stopped_instance_ids_list).start()
         
         for instance in stopped_instances:
             instance.wait_until_running()
@@ -219,21 +223,21 @@ class EC2:
         return response
     
     
-    def __stop_ec2_instances_with_client(self, *instance_ids):
-        running_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids)) if instance.state == "running"]
+    def __stop_ec2_instances_with_client(self, instance_ids):
+        filters = [{'Name': 'instance-state-name', 'Values' : ["running"]}]
+        running_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids), filters)]
         response = self.__client.stop_instances(InstanceIds = running_instance_ids_list)
         self.__client_waiter.wait_till_instance_status_stopped(running_instance_ids_list)
         return response
     
-    def __stop_ec2_instances_with_resource(self, *instance_ids):
+    def __stop_ec2_instances_with_resource(self, instance_ids):
         
-        running_instances = list(self.__resource.instances.filter(
-            Filters = [{'Name': 'instance-state-name', 'Values' : ["running"]}],
-            InstanceIds = list(instance_ids)))
+        filters = [{'Name': 'instance-state-name', 'Values' : ["running"]}]
+        running_instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids), filters)]
         
-        response = self.__resource.instances.filter(
-            Filters = [{'Name': 'instance-state-name', 'Values' : ["running"]}],
-            InstanceIds = list(instance_ids)).stop()
+        running_instances = list(self.__resource.instances.filter(InstanceIds = running_instance_ids_list))
+        
+        response = self.__resource.instances.filter(InstanceIds = running_instance_ids_list).stop()
         
         for instance in running_instances:
             instance.wait_until_stopped()
@@ -241,27 +245,26 @@ class EC2:
         return response
  
     
-    def __terminate_ec2_instances_with_client(self, *instance_ids):
-        instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids)) if instance.state in ("running","stopped")]
+    def __terminate_ec2_instances_with_client(self, instance_ids):
+        filters = [{"Name": "instance-state-name", "Values" : ["running", "stopped"]}]
+        instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids), filters)]
         response = self.__client.terminate_instances(InstanceIds = instance_ids_list)
         self.__client_waiter.wait_till_instance_status_terminated(instance_ids_list)
         return response
 
-    def __terminate_ec2_instances_with_resource(self, *instance_ids):
-        instances = list(self.__resource.instances.filter(
-            Filters = [{'Name': 'instance-state-name', 'Values' : ["running","stopped"]}],
-            InstanceIds = list(instance_ids)))
+    def __terminate_ec2_instances_with_resource(self, instance_ids):
+        filters = [{"Name": "instance-state-name", "Values" : ["running", "stopped"]}]
+        instance_ids_list = [instance.instance_id for instance in self.get_all_ec2_instances(list(instance_ids), filters)]
+        instances = list(self.__resource.instances.filter(InstanceIds = instance_ids_list))
         
-        response = self.__resource.instances.filter(
-            Filters = [{'Name': 'instance-state-name', 'Values' : ["running","stopped"]}],
-            InstanceIds = list(instance_ids)).terminate()
+        response = self.__resource.instances.filter(InstanceIds = instance_ids_list).terminate()
         
         for instance in instances:
             instance.wait_until_terminated()
             
         return response
                     
-    def stop_ec2_instances(self, *instance_ids):
+    def stop_ec2_instances(self, instance_ids):
         """Stops a single or multiple instances using both client and resource AWS object
 
         Raises:
@@ -272,13 +275,13 @@ class EC2:
         """
         print("Stopping instances : {}...".format(','.join(instance_ids)))
         if self.__client:
-            return self.__stop_ec2_instances_with_client(*instance_ids)
+            return self.__stop_ec2_instances_with_client(instance_ids)
         elif self.__resource:
-            return self.__stop_ec2_instances_with_resource(*instance_ids)
+            return self.__stop_ec2_instances_with_resource(instance_ids)
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
     
-    def start_ec2_instances(self, *instance_ids):
+    def start_ec2_instances(self, instance_ids):
         """Starts a single or multiple instances using both client and resource AWS object
 
         Raises:
@@ -289,13 +292,13 @@ class EC2:
         """
         print("Starting instances : {}...".format(','.join(instance_ids)))
         if self.__client:
-            return self.__start_ec2_instances_with_client(*instance_ids)
+            return self.__start_ec2_instances_with_client(instance_ids)
         elif self.__resource:
-            return self.__start_ec2_instances_with_resource(*instance_ids)
+            return self.__start_ec2_instances_with_resource(instance_ids)
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
     
-    def terminate_ec2_instances(self, *instance_ids):
+    def terminate_ec2_instances(self, instance_ids):
         """Terminates a single or multiple instances using both client and resource AWS object
 
         Raises:
@@ -306,22 +309,19 @@ class EC2:
         """
         print("Terminating instances : {}...".format(','.join(instance_ids)))
         if self.__client:
-            return self.__terminate_ec2_instances_with_client(*instance_ids)
+            return self.__terminate_ec2_instances_with_client(instance_ids)
         elif self.__resource:
-            return self.__terminate_ec2_instances_with_resource(*instance_ids)
+            return self.__terminate_ec2_instances_with_resource(instance_ids)
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
         
-    def __get_all_ec2_instances_with_resource(self, instance_ids):
+    def __get_all_ec2_instances_with_resource(self, instance_ids, filters):
         """Returns all the instances using the AWS resource object
 
         Yields:
             Instance Ids
         """
-        if instance_ids:
-            instances = self.__resource.instances.filter(InstanceIds = list(instance_ids))
-        else:
-            instances = self.__resource.instances.all()
+        instances = self.__resource.instances.filter(InstanceIds = list(instance_ids), Filters = filters)
             
         for instance in instances:
             yield EC2Instance(instance.instance_id,
@@ -337,19 +337,17 @@ class EC2:
                             instance.subnet_id,
                             instance.vpc_id,
                             instance.architecture,
-                            instance.instance_lifecycle
+                            instance.instance_lifecycle,
+                            [volume.volume_id for volume in instance.volumes.all()]
             );
     
-    def __get_all_ec2_instances_with_client(self, instance_ids ):
+    def __get_all_ec2_instances_with_client(self, instance_ids, filters ):
         """Returns all the instances using the AWS client object
 
         Yields:
             iterator of EC2Instance objects
         """
-        if instance_ids:
-            instances_response = self.__client.describe_instances(InstanceIds=list(instance_ids))
-        else:
-            instances_response = self.__client.describe_instances()
+        instances_response = self.__client.describe_instances(InstanceIds=list(instance_ids), Filters = filters)
             
         for reservation in instances_response.get("Reservations"):
             for instance in  reservation.get("Instances"):
@@ -366,19 +364,21 @@ class EC2:
                                 instance.get("SubnetId"), 
                                 instance.get("VpcId"), 
                                 instance.get("Architecture"), 
-                                instance.get("InstanceLifecycle")
+                                instance.get("InstanceLifecycle"),
+                                [volume.get("Ebs").get("VolumeId") for volume in instance.get("BlockDeviceMappings")]
+                                
                     );
 
-    def get_all_ec2_instances(self, instance_ids = None):
+    def get_all_ec2_instances(self, instance_ids = [], filters = []):
         """Returns all the instances Ids
 
         Yields:
             Instance Ids
         """
         if self.__resource:
-            return self.__get_all_ec2_instances_with_resource(instance_ids);
+            return self.__get_all_ec2_instances_with_resource(instance_ids, filters);
         elif self.__client:
-            return self.__get_all_ec2_instances_with_client(instance_ids);
+            return self.__get_all_ec2_instances_with_client(instance_ids, filters);
         else:
             raise AttributeError("AWS resource or client object is not set for EC2 object..")
         

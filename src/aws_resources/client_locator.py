@@ -17,8 +17,7 @@ class ClientLocator:
         return self.__client
     def get_waiter(self):
         return self.__waiter_service 
-
-    
+ 
 class EC2Client(ClientLocator):
     """It will return EC2 client
 
