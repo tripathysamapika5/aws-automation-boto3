@@ -118,10 +118,19 @@ class SnapshotService:
         else:
             raise AttributeError("AWS resource or client object is not set for SnapshotService object..")
     
-    def get_snapshots_filted_on_volume_size(self,volume_sizes = [], snapshot_ids = [], filters = [], owner_ids = ["self"]):
+    def get_snapshots_filtered_on_volume_size(self,volume_sizes = [], snapshot_ids = [], filters = [], owner_ids = ["self"]):
+        """Snapshots filtered on volume size
+
+        Args:
+            volume_sizes (list, optional): [size of volume]. Defaults to [].
+            snapshot_ids (list, optional): [snapshot ids of the snapshot on which filter will be applied]. Defaults to [].
+            filters (list, optional): [specific filters]. Defaults to [].
+            owner_ids (list, optional): [volumes belonging to specific aws account ids]. Defaults to ["self"].
+
+        Returns:
+            Generator of object Snapshot
+        """
         volume_sizes = [str(volume_size) for volume_size in volume_sizes]
         filters.append({"Name" : "volume-size", "Values" : volume_sizes})
-        
-        print(filters)
-                    
+                            
         return self.get_all_snapshots(snapshot_ids, filters, owner_ids)

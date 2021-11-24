@@ -43,11 +43,14 @@ Default output format [None]: json
 
 ```
 
-also create a user with admin access with name samapika
+also create a user with admin access with name samapika and configure it as default profile and also under profile name samapika
 
 ```
+aws configure
 aws configure --profile samapika
 ```
+
+
 
 # Check your AWS configration profiles by following commands
 
@@ -61,6 +64,18 @@ cat  ~/.aws/credentials
 
 ```
 session = boto3.session.Session(profile_name = "samapika", region_name = "us-east-1")
-resource = session.client("ec2")
+resource = session.resource("ec2")
 client = resource.meta.client
+```
+
+# To work with Iam roles instaed of Access key
+
+create appropriate Iam role with approprite access and then attach it to a instance.
+Then run the code there.
+
+There instead of using custome profile we can use default client and resource as below.
+
+```
+client = boto3.client("ec2")
+resource = boto3.resource("ec2")
 ```

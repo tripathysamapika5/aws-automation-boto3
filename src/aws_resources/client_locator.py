@@ -11,7 +11,11 @@ from  src.aws_resources.waiter import ClientWaiterService
 
 class ClientLocator:
     def __init__(self, service_name, profile_name, region_name ): 
-        self.__client = boto3.session.Session(profile_name = profile_name, region_name = region_name).client(service_name)
+        if profile_name:
+            self.__client = boto3.session.Session(profile_name = profile_name).client(service_name, region_name = region_name)
+        else:
+            self.__client = boto3.client(service_name, region_name = region_name)
+            
         self.__waiter_service = ClientWaiterService(self.__client)
     def get_client(self): 
         return self.__client
@@ -24,7 +28,7 @@ class EC2Client(ClientLocator):
     Args:
         ClientLocator (String)
     """
-    def __init__(self, profile_name = "samapika", region_name = "us-east-1"): 
+    def __init__(self, profile_name = None, region_name = "us-east-1"): 
         super().__init__('ec2', profile_name, region_name)
         
 class IamClient(ClientLocator):
@@ -34,7 +38,7 @@ class IamClient(ClientLocator):
         ClientLocator (String)
     """
 
-    def __init__(self, profile_name = "samapika",region_name = "us-east-1"): 
+    def __init__(self, profile_name = None,region_name = "us-east-1"): 
         super().__init__('iam', profile_name, region_name)
         
 class S3Client(ClientLocator):
@@ -43,7 +47,7 @@ class S3Client(ClientLocator):
     Args:
         ClientLocator (String)
     """
-    def __init__(self, profile_name = "samapika",region_name = "us-east-1"): 
+    def __init__(self, profile_name = None,region_name = "us-east-1"): 
         super().__init__('s3', profile_name, region_name)
         
 class STSClient(ClientLocator):
@@ -52,5 +56,5 @@ class STSClient(ClientLocator):
     Args:
         ClientLocator (String)
     """
-    def __init__(self, profile_name = "samapika",region_name = "us-east-1"): 
+    def __init__(self, profile_name = None,region_name = "us-east-1"): 
         super().__init__('sts', profile_name, region_name)

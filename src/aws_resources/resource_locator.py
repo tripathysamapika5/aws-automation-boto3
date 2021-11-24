@@ -4,7 +4,11 @@ from src.aws_resources.waiter import ClientWaiterService
 
 class ResourceLocator:
     def __init__(self, service_name, profile_name, region_name): 
-        self.__resource = boto3.session.Session(profile_name=profile_name, region_name = region_name).resource(service_name)
+        if profile_name:
+            self.__resource = boto3.session.Session(profile_name=profile_name).resource(service_name, region_name = region_name)
+        else:
+            self.__resource = boto3.resource(service_name, region_name = region_name)
+            
         self.__client = self.__resource.meta.client
         self.__waiter_service = ClientWaiterService(self.__client)
         
@@ -22,7 +26,7 @@ class EC2Resource(ResourceLocator):
     Args:
         ResourceLocator (String)
     """
-    def __init__(self, profile_name = "samapika", region_name = "us-east-1"): 
+    def __init__(self, profile_name = None, region_name = "us-east-1"): 
         super().__init__('ec2', profile_name, region_name)
     
 class IamResource(ResourceLocator):
@@ -31,7 +35,7 @@ class IamResource(ResourceLocator):
     Args:
         ResourceLocator (String)
     """
-    def __init__(self, profile_name = "samapika", region_name = "us-east-1"): 
+    def __init__(self, profile_name = None, region_name = "us-east-1"): 
         super().__init__('iam', profile_name, region_name)
         
 class S3Resource(ResourceLocator):
@@ -40,5 +44,5 @@ class S3Resource(ResourceLocator):
     Args:
         ResourceLocator (String)
     """
-    def __init__(self, profile_name = "samapika", region_name = "us-east-1"): 
+    def __init__(self, profile_name = None, region_name = "us-east-1"): 
         super().__init__('s3', profile_name, region_name)
