@@ -1,6 +1,9 @@
 import boto3
 import logging
 
+from src.utils.password_generator import RandomPasswordGenerator
+
+
 class IAMUser:
     def __init__(self, user_id, user_name=None, arn=None, create_date=None, password_last_used=None, tags=None,
                  path=None):
@@ -193,3 +196,68 @@ class IAMService:
             yield from self.__get_groups_using_resource(group_names)
         else:
             raise AttributeError("AWS resource or client object is not set for IAM object")
+
+    def __create_login_credential_with_client(self, user_name):
+        password = RandomPasswordGenerator.generate_random_password()
+        self.__client.create_login_profile(UserName=user_name, Password=password, PasswordResetRequired=False)
+        print(password)
+
+    def __create_login_credential_with_resource(self, user):
+        password = RandomPasswordGenerator.generate_random_password()
+        user.create_login_profile(Password=password, PasswordResetRequired=False)
+        print("Password : {}".format(password))
+
+    def __create_user_acess_key_with_client(self, user_name):
+        access_response = self.__client.create_access_key(UserName=user_name)
+        access_key = access_response.get("AccessKey").get("AccessKeyId")
+        secret_access_key = access_response.get("AccessKey").get("SecretAccessKey")
+        print(access_key, secret_access_key)
+
+    def __create_user_acess_key_with_resourcet(self, user):
+        access_key_pair = user.create_access_key_pair()
+        print("Access Key : {}, Secret Access Key : {}".format(access_key_pair.access_key_id,
+                                                               access_key_pair.secret_access_key))
+
+    def __create_user_with_client(self, user_name, policy_arn, programmatic_access, console_access):
+        self.__client.create_user(UserName=user_name)
+
+        if console_access:
+            self.__create_login_credential_with_client(user_name)
+        if programmatic_access:
+            self.__create_user_acess_key_with_client(user_name)
+
+        self.__client.attach_user_policy(UserName=user_name, PolicyArn=policy_arn)
+
+    def __create_user_with_resource(self, user_name, policy_arn, programmatic_access, console_access):
+        user = self.__resource.create_user(UserName=user_name)
+        if console_access:
+            self.__create_login_credential_with_resource(user)
+        if programmatic_access:
+            self.__create_user_acess_key_with_resourcet(user)
+
+        user.attach_policy(PolicyArn=policy_arn)
+
+    def create_user(self, user_name, policy_arn, programmatic_access=True, console_access=True):
+        """
+        @summary : will create IAM user with programmatic_access and console_access
+
+        @param : user_name : name of the user
+        @param : policy_arn : amazon resource name of the policy that you ant to attach with user
+        @param : programmatic_access(default True) : If true user will be created with programatic access
+        @param : console_access(default True) : If true user will be created with console access
+
+        @return : None
+        """
+        try:
+            if self.__client:
+                self.__create_user_with_client(user_name, policy_arn, programmatic_access, console_access)
+            elif self.__resource:
+                self.__create_user_with_resource(user_name, policy_arn, programmatic_access, console_access)
+
+        except Exception as e:
+            if e.response.get("Error").get("Code") == "EntityAlreadyExists":
+                code = e.response.get("Error").get("Code")
+                message = e.response.get("Error").get("Message")
+                logging.exception("""{} : {}""".format(code, message))
+            else:
+                logging.exception(e)
